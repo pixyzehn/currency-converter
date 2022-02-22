@@ -10,6 +10,9 @@ let package = Package(
             name: "CurrencyConverter",
             targets: ["CurrencyConverter"]),
     ],
+    dependencies: [
+        .package(url: "https://github.com/apple/swift-docc-plugin", branch: "main"),
+    ],
     targets: [
         .target(
             name: "CurrencyConverter",
