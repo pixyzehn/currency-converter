@@ -25,11 +25,13 @@ final class CurrencyConverterTests: XCTestCase {
         let datePattern = #"^\d{4}[-]\d{2}[-]\d{2}$"# // 2021-05-07
         XCTAssertNotNil(date.range(of: datePattern, options: .regularExpression))
 
-        // Currently, the supported currency codes are 32. The number can be updated if the source is changed.
+        // Currently, the supported currency codes are 31 (32 - EUR/RUB). The number can be updated if the source is changed.
+        // The ECB has therefore decided to suspend its publication of a euro reference rate for the Russian rouble until further notice.
         // ref: https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html
-        XCTAssertEqual(referenceRates.rates().count, 32)
-        XCTAssertEqual(referenceRates.rates(baseCurrencyCode: "USD").count, 32)
-        XCTAssertEqual(referenceRates.rates(baseCurrencyCode: "JPY").count, 32)
+        let numberOfRates = 31
+        XCTAssertEqual(referenceRates.rates().count, numberOfRates)
+        XCTAssertEqual(referenceRates.rates(baseCurrencyCode: "USD").count, numberOfRates)
+        XCTAssertEqual(referenceRates.rates(baseCurrencyCode: "JPY").count, numberOfRates)
         XCTAssertEqual(referenceRates.rates(baseCurrencyCode: "XXX").count, 0)
     }
 
