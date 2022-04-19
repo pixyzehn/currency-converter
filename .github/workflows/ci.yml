@@ -13,12 +13,12 @@ on:
 
 jobs:
   tests:
-    runs-on: macOS-11
+    runs-on: macOS-12
     timeout-minutes: 10
     strategy:
       matrix:
         xcode:
-          - 13.2.1
+          - 13.3.1
     steps:
       - uses: actions/checkout@v2
 
