@@ -9,7 +9,7 @@ Note that the reference rates are usually updated around 16:00 CET on every work
 ```shell
 swift package --allow-writing-to-directory ./docs \
     generate-documentation --target CurrencyConverter --output-path ./docs \
-    --transform-for-static-hosting --hosting-base-path CurrencyConverter
+    --transform-for-static-hosting --hosting-base-path currency-converter
 ```
 
 ## Previewing Documentation
