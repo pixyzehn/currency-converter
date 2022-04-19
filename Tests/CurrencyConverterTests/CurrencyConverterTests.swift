@@ -19,7 +19,8 @@ final class CurrencyConverterTests: XCTestCase {
         let twoDaysAgo = dateFormatter.string(from: now.addingTimeInterval(-24 * 60 * 60 * 2))
         let threeDaysAgo = dateFormatter.string(from: now.addingTimeInterval(-24 * 60 * 60 * 3))
         let fourDaysAgo = dateFormatter.string(from: now.addingTimeInterval(-24 * 60 * 60 * 4))
-        let possibleDates = [today, oneDayAgo, twoDaysAgo, threeDaysAgo, fourDaysAgo]
+        let fiveDaysAgo = dateFormatter.string(from: now.addingTimeInterval(-24 * 60 * 60 * 5))
+        let possibleDates = [today, oneDayAgo, twoDaysAgo, threeDaysAgo, fourDaysAgo, fiveDaysAgo]
         XCTAssertTrue(possibleDates.contains(date))
 
         let datePattern = #"^\d{4}[-]\d{2}[-]\d{2}$"# // 2021-05-07
