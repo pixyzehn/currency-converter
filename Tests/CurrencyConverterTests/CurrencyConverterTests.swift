@@ -5,31 +5,21 @@ final class CurrencyConverterTests: XCTestCase {
     func testConverterFetch() async throws {
         let converter = CurrencyConverter()
         let referenceRates = try await converter.fetch()
-        // The reference rates are usually updated around 16:00 CET on every working day, except on TARGET closing days.
-        // Working hours: Monday to Friday: 8:30 to 17:30 CET. Saturday, Sunday, and public holidays: closed
-        // More info: https://www.ecb.europa.eu/home/contacts/working-hours/html/index.en.html
         let date = referenceRates.date
-        // Given the Christmas holidays, the referenceRates should be updated within 4 days (3 [the Christmas holidays] + 1 [buffer for Timezone differences]).
-        // Otherwise, we see it as an exceptional error.
         let now = Date()
         let dateFormatter = DateFormatter.yyyyMMddFormatter
 
         let today = dateFormatter.string(from: now)
         let oneDayAgo = dateFormatter.string(from: now.addingTimeInterval(-24 * 60 * 60 * 1))
         let twoDaysAgo = dateFormatter.string(from: now.addingTimeInterval(-24 * 60 * 60 * 2))
-        let threeDaysAgo = dateFormatter.string(from: now.addingTimeInterval(-24 * 60 * 60 * 3))
-        let fourDaysAgo = dateFormatter.string(from: now.addingTimeInterval(-24 * 60 * 60 * 4))
-        let fiveDaysAgo = dateFormatter.string(from: now.addingTimeInterval(-24 * 60 * 60 * 5))
-        let possibleDates = [today, oneDayAgo, twoDaysAgo, threeDaysAgo, fourDaysAgo, fiveDaysAgo]
+        let possibleDates = [today, oneDayAgo, twoDaysAgo]
         XCTAssertTrue(possibleDates.contains(date))
 
         let datePattern = #"^\d{4}[-]\d{2}[-]\d{2}$"# // 2021-05-07
         XCTAssertNotNil(date.range(of: datePattern, options: .regularExpression))
 
-        // Currently, the supported currency codes are 31 (32 - EUR/RUB). The number can be updated if the source is changed.
-        // The ECB has therefore decided to suspend its publication of a euro reference rate for the Russian rouble until further notice.
-        // ref: https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html
-        let numberOfRates = 31
+        // ref: https://github.com/pixyzehn/getexpenses.app/blob/main/eurofxref/eurofxref.xml
+        let numberOfRates = 163
         XCTAssertEqual(referenceRates.rates().count, numberOfRates)
         XCTAssertEqual(referenceRates.rates(baseCurrencyCode: "USD").count, numberOfRates)
         XCTAssertEqual(referenceRates.rates(baseCurrencyCode: "JPY").count, numberOfRates)

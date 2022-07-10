@@ -1,7 +1,6 @@
 import Foundation
 
-/// The converter to fetch foreign exchange reference rates from European Central Bank (ECB).
-/// The source is from [Euro foreign exchange reference rates](https://www.ecb.europa.eu/stats/policy_and_exchange_rates/euro_reference_exchange_rates/html/index.en.html).
+/// The converter to fetch foreign exchange reference rates.
 public class CurrencyConverter {
     private let parser: ReferenceRatesXMLParser
 

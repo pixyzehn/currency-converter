@@ -1,7 +1,7 @@
 import Foundation
 
 class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
-    private static let defaultXMLURL = URL(string: "https://getexpenses.app/eurofxref/eurofxref-daily.xml")!
+    private static let defaultXMLURL = URL(string: "https://getexpenses.app/eurofxref/eurofxref.xml")!
 
     private let parser: XMLParser?
 
