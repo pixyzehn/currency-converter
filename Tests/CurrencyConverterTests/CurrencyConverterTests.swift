@@ -58,10 +58,10 @@ final class CurrencyConverterTests: XCTestCase {
     }
 
     private let testXMLData = """
-        <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="http://www.ecb.int/vocabulary/2002-08-01/eurofxref">
+        <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="https://getexpenses.app/eurofxref">
         <gesmes:subject>Reference rates</gesmes:subject>
         <gesmes:Sender>
-        <gesmes:name>European Central Bank</gesmes:name>
+        <gesmes:name>Expenses</gesmes:name>
         </gesmes:Sender>
         <Cube>
         <Cube time="2021-05-07">
