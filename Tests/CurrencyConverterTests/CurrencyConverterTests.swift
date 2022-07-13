@@ -19,7 +19,7 @@ final class CurrencyConverterTests: XCTestCase {
         XCTAssertNotNil(date.range(of: datePattern, options: .regularExpression))
 
         // ref: https://github.com/pixyzehn/getexpenses.app/blob/main/eurofxref/eurofxref.xml
-        let numberOfRates = 163
+        let numberOfRates = 154
         XCTAssertEqual(referenceRates.rates().count, numberOfRates)
         XCTAssertEqual(referenceRates.rates(baseCurrencyCode: "USD").count, numberOfRates)
         XCTAssertEqual(referenceRates.rates(baseCurrencyCode: "JPY").count, numberOfRates)
