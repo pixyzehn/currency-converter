@@ -13,12 +13,12 @@ on:
 
 jobs:
   tests:
-    runs-on: macOS-14
+    runs-on: macOS-15
     timeout-minutes: 10
     strategy:
       matrix:
         xcode:
-          - 15.4
+          - 16.0
     steps:
       - uses: actions/checkout@v3
 
@@ -27,4 +27,4 @@ jobs:
 
       - name: Run test
         run: |
-          xcodebuild test -scheme CurrencyConverter -destination platform="iOS Simulator,name=iPhone 15 Pro"
+          xcodebuild test -scheme CurrencyConverter -destination platform="iOS Simulator,name=iPhone 16 Pro"
