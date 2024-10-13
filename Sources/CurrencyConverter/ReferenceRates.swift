@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents the reference rates that has the date code and rates.
-public struct ReferenceRates: Codable, Hashable {
+public struct ReferenceRates: Codable, Hashable, Sendable {
     private static let defaultCurrencyCode = "EUR"
 
     /// The date string, e.g. 2021-05-13.

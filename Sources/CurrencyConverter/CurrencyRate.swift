@@ -1,7 +1,7 @@
 import Foundation
 
 /// Represents the currency rate that has the currency code and rate.
-public struct CurrencyRate: Codable, Hashable {
+public struct CurrencyRate: Codable, Hashable, Sendable {
     /// The currency code, such as "USD", "EUR", and "JPY".
     public let currencyCode: String
     /// The currency rate in the currency code.
