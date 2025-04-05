@@ -1,8 +1,9 @@
 @testable import CurrencyConverter
-import XCTest
+import Testing
+import Foundation
 
-final class CurrencyConverterTests: XCTestCase {
-    func testConverterFetch() async throws {
+struct CurrencyConverterTests {
+    @Test func converterFetch() async throws {
         let converter = CurrencyConverter()
         let referenceRates = try await converter.fetch()
         let date = referenceRates.date
@@ -13,35 +14,35 @@ final class CurrencyConverterTests: XCTestCase {
         let oneDayAgo = dateFormatter.string(from: now.addingTimeInterval(-24 * 60 * 60 * 1))
         let twoDaysAgo = dateFormatter.string(from: now.addingTimeInterval(-24 * 60 * 60 * 2))
         let possibleDates = [today, oneDayAgo, twoDaysAgo]
-        XCTAssertTrue(possibleDates.contains(date))
+        #expect(possibleDates.contains(date))
 
         let datePattern = #"^\d{4}[-]\d{2}[-]\d{2}$"# // 2021-05-07
-        XCTAssertNotNil(date.range(of: datePattern, options: .regularExpression))
+        #expect(date.range(of: datePattern, options: .regularExpression) != nil)
 
         // ref: https://github.com/pixyzehn/getexpenses.app/blob/main/eurofxref/eurofxref.xml
-        XCTAssertEqual(referenceRates.rates(baseCurrencyCode: "USD").count, referenceRates.rates(baseCurrencyCode: "JPY").count)
-        XCTAssertEqual(referenceRates.rates(baseCurrencyCode: "XXX").count, 0)
+        #expect(referenceRates.rates(baseCurrencyCode: "USD").count == referenceRates.rates(baseCurrencyCode: "JPY").count)
+        #expect(referenceRates.rates(baseCurrencyCode: "XXX").count == 0)
     }
 
-    func testReferenceRatesRate() async throws {
+    @Test func referenceRatesRate() async throws {
         let converter = CurrencyConverter(data: testXMLData)
         let referenceRates = try await converter.fetch()
-        XCTAssertEqual(referenceRates.rate(amount: 6, fromCurrencyCode: "EUR", toCurrencyCode: "JPY"), 131.76 * 6)
-        XCTAssertEqual(referenceRates.rate(amount: 10, fromCurrencyCode: "USD", toCurrencyCode: "JPY"), 131.76 / 1.2059 * 10)
-        XCTAssertEqual(referenceRates.rate(amount: 100, fromCurrencyCode: "BRL", toCurrencyCode: "NZD"), 1.6730 / 6.3801 * 100)
-        XCTAssertEqual(referenceRates.rate(amount: 2, fromCurrencyCode: "USD", toCurrencyCode: "EUR"), 1 / 1.2059 * 2)
-        XCTAssertEqual(referenceRates.rate(amount: 2, fromCurrencyCode: "USD", toCurrencyCode: "USD"), 2)
-        XCTAssertEqual(referenceRates.rate(amount: 2, fromCurrencyCode: "USD", toCurrencyCode: "XXX"), nil)
-        XCTAssertEqual(referenceRates.rate(amount: 2, fromCurrencyCode: "XXX", toCurrencyCode: "USD"), nil)
+        #expect(referenceRates.rate(amount: 6, fromCurrencyCode: "EUR", toCurrencyCode: "JPY") == 131.76 * 6)
+        #expect(referenceRates.rate(amount: 10, fromCurrencyCode: "USD", toCurrencyCode: "JPY") == 131.76 / 1.2059 * 10)
+        #expect(referenceRates.rate(amount: 100, fromCurrencyCode: "BRL", toCurrencyCode: "NZD") == 1.6730 / 6.3801 * 100)
+        #expect(referenceRates.rate(amount: 2, fromCurrencyCode: "USD", toCurrencyCode: "EUR") == 1 / 1.2059 * 2)
+        #expect(referenceRates.rate(amount: 2, fromCurrencyCode: "USD", toCurrencyCode: "USD") == 2)
+        #expect(referenceRates.rate(amount: 2, fromCurrencyCode: "USD", toCurrencyCode: "XXX") == nil)
+        #expect(referenceRates.rate(amount: 2, fromCurrencyCode: "XXX", toCurrencyCode: "USD") == nil)
     }
 
-    func testReferenceRatesRates() async throws {
+    @Test func referenceRatesRates() async throws {
         let converter = CurrencyConverter(data: testXMLData)
         let referenceRates = try await converter.fetch()
-        XCTAssertEqual(referenceRates.rates(amount: 1, baseCurrencyCode: "EUR").first(where: { $0.currencyCode == "USD" })?.rate, 1.2059)
-        XCTAssertEqual(referenceRates.rates(amount: 1, baseCurrencyCode: "USD").first(where: { $0.currencyCode == "EUR" })?.rate, 1 / 1.2059)
-        XCTAssertEqual(referenceRates.rates(amount: 1, baseCurrencyCode: "JPY").first(where: { $0.currencyCode == "USD" })?.rate, 1.2059 / 131.76)
-        XCTAssertEqual(referenceRates.rates(amount: 1, baseCurrencyCode: "XXX"), [])
+        #expect(referenceRates.rates(amount: 1, baseCurrencyCode: "EUR").first(where: { $0.currencyCode == "USD" })?.rate == 1.2059)
+        #expect(referenceRates.rates(amount: 1, baseCurrencyCode: "USD").first(where: { $0.currencyCode == "EUR" })?.rate == 1 / 1.2059)
+        #expect(referenceRates.rates(amount: 1, baseCurrencyCode: "JPY").first(where: { $0.currencyCode == "USD" })?.rate == 1.2059 / 131.76)
+        #expect(referenceRates.rates(amount: 1, baseCurrencyCode: "XXX") == [])
     }
 
     private let testXMLData = """
