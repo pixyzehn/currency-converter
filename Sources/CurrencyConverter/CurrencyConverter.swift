@@ -14,11 +14,16 @@ public class CurrencyConverter {
 
     /// Fetch the latest reference rates from the source.
     public func fetch(completion: @escaping (Result<ReferenceRates, XMLParserError>) -> Void) {
+        let safe = SafeCallback()
         parser.callbacks.parseSucceeded = { referenceRates in
-            completion(.success(referenceRates))
+            safe.call {
+                completion(.success(referenceRates))
+            }
         }
         parser.callbacks.parseErrorOccurred = { error in
-            completion(.failure(error))
+            safe.call {
+                completion(.failure(error))
+            }
         }
         parser.parse()
     }
