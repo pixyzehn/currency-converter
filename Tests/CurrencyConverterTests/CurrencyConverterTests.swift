@@ -19,7 +19,6 @@ struct CurrencyConverterTests {
         let datePattern = #"^\d{4}[-]\d{2}[-]\d{2}$"# // 2021-05-07
         #expect(date.range(of: datePattern, options: .regularExpression) != nil)
 
-        // ref: https://github.com/pixyzehn/getexpenses.app/blob/main/eurofxref/eurofxref.xml
         #expect(referenceRates.rates(baseCurrencyCode: "USD").count == referenceRates.rates(baseCurrencyCode: "JPY").count)
         #expect(referenceRates.rates(baseCurrencyCode: "XXX").count == 0)
     }
@@ -46,7 +45,7 @@ struct CurrencyConverterTests {
     }
 
     private let testXMLData = """
-        <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="https://getexpenses.app/eurofxref">
+        <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="https://expenses.cash/eurofxref">
         <gesmes:subject>Reference rates</gesmes:subject>
         <gesmes:Sender>
         <gesmes:name>Expenses</gesmes:name>
