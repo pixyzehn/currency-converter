@@ -5,8 +5,10 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
 
     private let parser: XMLParser?
 
+    private let resultRatesQueue = DispatchQueue(label: "ReferenceRatesXMLParser.resultRatesQueue")
+    private var _resultRates: [CurrencyRate] = []
     private var resultDate: String?
-    private var resultRates: [CurrencyRate] = []
+
     var callbacks = Callbacks()
 
     struct Callbacks {
@@ -18,6 +20,16 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
         case time
         case currency
         case rate
+    }
+
+    private func appendRate(_ rate: CurrencyRate) {
+        resultRatesQueue.sync {
+            _resultRates.append(rate)
+        }
+    }
+
+    private var resultRates: [CurrencyRate] {
+        resultRatesQueue.sync { _resultRates }
     }
 
     init(contentsOf url: URL = defaultXMLURL) {
@@ -77,7 +89,7 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
         }
 
         if let currencyCode = currencyRate.currencyCode, let rate = currencyRate.rate {
-            resultRates.append(.init(currencyCode: currencyCode, rate: rate))
+            appendRate(.init(currencyCode: currencyCode, rate: rate))
         }
     }
 
