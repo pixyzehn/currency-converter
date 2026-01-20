@@ -3,7 +3,7 @@ import Foundation
 class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
     private static let defaultXMLURL = URL(string: "https://expenses.cash/eurofxref/eurofxref.xml")!
 
-    private let parser: XMLParser?
+    private let source: Source
 
     private let resultRatesQueue = DispatchQueue(label: "ReferenceRatesXMLParser.resultRatesQueue")
     private var _resultRates: [CurrencyRate] = []
@@ -22,6 +22,11 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
         case rate
     }
 
+    enum Source {
+        case url(URL)
+        case data(Data)
+    }
+
     private func appendRate(_ rate: CurrencyRate) {
         resultRatesQueue.sync {
             _resultRates.append(rate)
@@ -33,19 +38,37 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
     }
 
     init(contentsOf url: URL = defaultXMLURL) {
-        parser = XMLParser(contentsOf: url)
+        source = .url(url)
         super.init()
-        parser?.delegate = self
     }
 
     init(data: Data) {
-        parser = XMLParser(data: data)
+        source = .data(data)
         super.init()
-        parser?.delegate = self
     }
 
     func parse() {
-        parser?.parse()
+        resetParseState()
+        let parser: XMLParser?
+        switch source {
+        case .url(let url):
+            parser = XMLParser(contentsOf: url)
+        case .data(let data):
+            parser = XMLParser(data: data)
+        }
+        guard let parser else {
+            callbacks.parseErrorOccurred?(.custom("Failed to initialize XMLParser"))
+            return
+        }
+        parser.delegate = self
+        parser.parse()
+    }
+
+    private func resetParseState() {
+        resultRatesQueue.sync {
+            _resultRates.removeAll(keepingCapacity: true)
+        }
+        resultDate = nil
     }
 
     // MARK: - XMLParserDelegate

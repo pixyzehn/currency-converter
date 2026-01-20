@@ -44,6 +44,32 @@ struct CurrencyConverterTests {
         #expect(referenceRates.rates(amount: 1, baseCurrencyCode: "XXX") == [])
     }
 
+    @Test func converterFetchResetsStateBetweenParses() async throws {
+        let converter = CurrencyConverter(data: testXMLData)
+        let first = try await converter.fetch()
+        let second = try await converter.fetch()
+        let firstRates = first.rates(baseCurrencyCode: "EUR")
+        let secondRates = second.rates(baseCurrencyCode: "EUR")
+        #expect(firstRates.count == secondRates.count)
+        #expect(Set(secondRates.map(\.currencyCode)).count == secondRates.count)
+    }
+
+    @Test func parserErrorsWhenXMLParserInitFails() {
+        let missingURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+        #expect(FileManager.default.fileExists(atPath: missingURL.path) == false)
+        let parser = ReferenceRatesXMLParser(contentsOf: missingURL)
+        var receivedError: XMLParserError?
+        parser.callbacks.parseErrorOccurred = { error in
+            receivedError = error
+        }
+        parser.callbacks.parseSucceeded = { _ in
+            receivedError = .custom("Unexpected success")
+        }
+        parser.parse()
+        #expect(receivedError != nil)
+    }
+
     private let testXMLData = """
         <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="https://expenses.cash/eurofxref">
         <gesmes:subject>Reference rates</gesmes:subject>
