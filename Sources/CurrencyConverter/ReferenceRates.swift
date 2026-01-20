@@ -24,7 +24,10 @@ public struct ReferenceRates: Codable, Hashable, Sendable {
         }
 
         if baseCurrencyCode == Self.defaultCurrencyCode {
-            return rates
+            if amount == 1 {
+                return rates
+            }
+            return rates.map { .init(currencyCode: $0.currencyCode, rate: amount * $0.rate) }
         } else {
             var newRates = rates.filter { $0.currencyCode != baseCurrencyCode }
 

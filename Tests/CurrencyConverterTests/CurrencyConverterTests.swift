@@ -44,6 +44,14 @@ struct CurrencyConverterTests {
         #expect(referenceRates.rates(amount: 1, baseCurrencyCode: "XXX") == [])
     }
 
+    @Test func referenceRatesRatesScalesAmountForEURBase() async throws {
+        let converter = CurrencyConverter(data: testXMLData)
+        let referenceRates = try await converter.fetch()
+        let scaledRates = referenceRates.rates(amount: 2, baseCurrencyCode: "EUR")
+        #expect(scaledRates.first(where: { $0.currencyCode == "USD" })?.rate == 1.2059 * 2)
+        #expect(scaledRates.first(where: { $0.currencyCode == "JPY" })?.rate == 131.76 * 2)
+    }
+
     @Test func converterFetchResetsStateBetweenParses() async throws {
         let converter = CurrencyConverter(data: testXMLData)
         let first = try await converter.fetch()

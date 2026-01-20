@@ -8,6 +8,7 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
     private let resultRatesQueue = DispatchQueue(label: "ReferenceRatesXMLParser.resultRatesQueue")
     private var _resultRates: [CurrencyRate] = []
     private var resultDate: String?
+    private var callbackGuard = SafeCallback()
 
     var callbacks = Callbacks()
 
@@ -49,6 +50,7 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
 
     func parse() {
         resetParseState()
+        callbackGuard = SafeCallback()
         let parser: XMLParser?
         switch source {
         case .url(let url):
@@ -57,11 +59,24 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
             parser = XMLParser(data: data)
         }
         guard let parser else {
-            callbacks.parseErrorOccurred?(.custom("Failed to initialize XMLParser"))
+            callbackGuard.call {
+                callbacks.parseErrorOccurred?(.custom("Failed to initialize XMLParser"))
+            }
             return
         }
         parser.delegate = self
-        parser.parse()
+        let succeeded = parser.parse()
+        if !succeeded {
+            if let error = parser.parserError {
+                callbackGuard.call {
+                    callbacks.parseErrorOccurred?(.general(error))
+                }
+            } else {
+                callbackGuard.call {
+                    callbacks.parseErrorOccurred?(.custom("Parse failed"))
+                }
+            }
+        }
     }
 
     private func resetParseState() {
@@ -118,13 +133,19 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
 
     func parserDidEndDocument(_ parser: XMLParser) {
         if let resultDate = resultDate {
-            callbacks.parseSucceeded?(.init(date: resultDate, rates: resultRates))
+            callbackGuard.call {
+                callbacks.parseSucceeded?(.init(date: resultDate, rates: resultRates))
+            }
         } else {
-            callbacks.parseErrorOccurred?(.custom("Parse failed"))
+            callbackGuard.call {
+                callbacks.parseErrorOccurred?(.custom("Parse failed"))
+            }
         }
     }
 
     func parser(_ parser: XMLParser, parseErrorOccurred parseError: Error) {
-        callbacks.parseErrorOccurred?(.general(parseError))
+        callbackGuard.call {
+            callbacks.parseErrorOccurred?(.general(parseError))
+        }
     }
 }
