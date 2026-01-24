@@ -86,6 +86,13 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
         resultDate = nil
     }
 
+    private func handleParseError(_ message: String, parser: XMLParser) {
+        callbackGuard.call {
+            callbacks.parseErrorOccurred?(.custom(message))
+        }
+        parser.abortParsing()
+    }
+
     // MARK: - XMLParserDelegate
 
     func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String: String] = [:]) {
@@ -104,21 +111,21 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
                 if attribute.value.range(of: datePattern, options: .regularExpression) != nil {
                     resultDate = attribute.value
                 } else {
-                    callbacks.parseErrorOccurred?(.custom("Unexpected time value: \(attribute.value)"))
+                    handleParseError("Unexpected time value: \(attribute.value)", parser: parser)
                     return
                 }
             case XMLParserKeys.rate.rawValue:
                 if let rate = Double(attribute.value) {
                     currencyRate.rate = rate
                 } else {
-                    callbacks.parseErrorOccurred?(.custom("Unexpected rate value: \(attribute.value)"))
+                    handleParseError("Unexpected rate value: \(attribute.value)", parser: parser)
                     return
                 }
             case XMLParserKeys.currency.rawValue:
                 if Locale.isoCurrencyCodes.contains(attribute.value) {
                     currencyRate.currencyCode = attribute.value
                 } else {
-                    callbacks.parseErrorOccurred?(.custom("Unexpected currency value: \(attribute.value)"))
+                    handleParseError("Unexpected currency value: \(attribute.value)", parser: parser)
                     return
                 }
             default:
