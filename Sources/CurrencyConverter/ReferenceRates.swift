@@ -19,7 +19,7 @@ public struct ReferenceRates: Codable, Hashable, Sendable {
     ///     - amount: The amount of the currency. The default is 1.
     ///     - baseCurrencyCode: The base currency code for the currency rates. The default is "EUR".
     public func rates(amount: Double = 1, baseCurrencyCode: String = "EUR") -> [CurrencyRate] {
-        guard Locale.isoCurrencyCodes.contains(baseCurrencyCode) else {
+        guard CurrencyCodeValidator.isValidCurrencyCode(baseCurrencyCode) else {
             return []
         }
 
@@ -53,14 +53,13 @@ public struct ReferenceRates: Codable, Hashable, Sendable {
     ///     - fromCurrencyCode: The currency code that you'd like to converted from.
     ///     - toCurrencyCode: The currency code that you'd like to converted to.
     public func rate(amount: Double = 1, fromCurrencyCode: String, toCurrencyCode: String) -> Double? {
-        guard fromCurrencyCode != toCurrencyCode else {
-            return amount
+        guard CurrencyCodeValidator.isValidCurrencyCode(fromCurrencyCode),
+              CurrencyCodeValidator.isValidCurrencyCode(toCurrencyCode) else {
+            return nil
         }
 
-        let isoCurrencyCodes = Locale.isoCurrencyCodes
-
-        guard isoCurrencyCodes.contains(fromCurrencyCode) && isoCurrencyCodes.contains(toCurrencyCode) else {
-            return nil
+        guard fromCurrencyCode != toCurrencyCode else {
+            return amount
         }
 
         if let rate = rates.first(where: { $0.currencyCode == toCurrencyCode })?.rate, fromCurrencyCode == Self.defaultCurrencyCode {

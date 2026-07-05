@@ -33,6 +33,7 @@ struct CurrencyConverterTests {
         #expect(referenceRates.rate(amount: 2, fromCurrencyCode: "USD", toCurrencyCode: "USD") == 2)
         #expect(referenceRates.rate(amount: 2, fromCurrencyCode: "USD", toCurrencyCode: "XXX") == nil)
         #expect(referenceRates.rate(amount: 2, fromCurrencyCode: "XXX", toCurrencyCode: "USD") == nil)
+        #expect(referenceRates.rate(amount: 2, fromCurrencyCode: "XXX", toCurrencyCode: "XXX") == nil)
     }
 
     @Test func referenceRatesRates() async throws {
@@ -78,7 +79,44 @@ struct CurrencyConverterTests {
         #expect(receivedError != nil)
     }
 
-    private let testXMLData = """
+    @Test func parserRejectsNonExchangeRateCurrencyCodes() async {
+        let xmlData = testXMLData(replacing: #"currency="USD""#, with: #"currency="XXX""#)
+        let converter = CurrencyConverter(data: xmlData)
+        var didThrow = false
+
+        do {
+            _ = try await converter.fetch()
+        } catch {
+            didThrow = true
+        }
+
+        #expect(didThrow)
+    }
+
+    @Test func parserRejectsIncompleteCurrencyRows() async {
+        let xmlData = testXMLData(replacing: #" currency="USD""#, with: "")
+        let converter = CurrencyConverter(data: xmlData)
+        var didThrow = false
+
+        do {
+            _ = try await converter.fetch()
+        } catch {
+            didThrow = true
+        }
+
+        #expect(didThrow)
+    }
+
+    private var testXMLData: Data {
+        testXML.data(using: .utf8)!
+    }
+
+    private func testXMLData(replacing target: String, with replacement: String) -> Data {
+        testXML.replacingOccurrences(of: target, with: replacement).data(using: .utf8)!
+    }
+
+    private var testXML: String {
+        """
         <gesmes:Envelope xmlns:gesmes="http://www.gesmes.org/xml/2002-08-01" xmlns="https://expenses.cash/eurofxref">
         <gesmes:subject>Reference rates</gesmes:subject>
         <gesmes:Sender>
@@ -121,7 +159,8 @@ struct CurrencyConverterTests {
         </Cube>
         </Cube>
         </gesmes:Envelope>
-        """.data(using: .utf8)!
+        """
+    }
 }
 
 private extension DateFormatter {

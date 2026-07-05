@@ -122,7 +122,7 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
                     return
                 }
             case XMLParserKeys.currency.rawValue:
-                if Locale.isoCurrencyCodes.contains(attribute.value) {
+                if CurrencyCodeValidator.isValidCurrencyCode(attribute.value) {
                     currencyRate.currencyCode = attribute.value
                 } else {
                     handleParseError("Unexpected currency value: \(attribute.value)", parser: parser)
@@ -135,11 +135,13 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
 
         if let currencyCode = currencyRate.currencyCode, let rate = currencyRate.rate {
             appendRate(.init(currencyCode: currencyCode, rate: rate))
+        } else if currencyRate.currencyCode != nil || currencyRate.rate != nil {
+            handleParseError("Currency entries must include currency and rate", parser: parser)
         }
     }
 
     func parserDidEndDocument(_ parser: XMLParser) {
-        if let resultDate = resultDate {
+        if let resultDate = resultDate, !resultRates.isEmpty {
             callbackGuard.call {
                 callbacks.parseSucceeded?(.init(date: resultDate, rates: resultRates))
             }
