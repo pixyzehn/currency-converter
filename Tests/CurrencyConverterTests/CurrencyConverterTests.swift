@@ -4,21 +4,18 @@ import Foundation
 
 struct CurrencyConverterTests {
     @Test func converterFetch() async throws {
-        let converter = CurrencyConverter()
+        let testXMLURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent(UUID().uuidString)
+            .appendingPathExtension("xml")
+        try testXMLData.write(to: testXMLURL)
+        defer {
+            try? FileManager.default.removeItem(at: testXMLURL)
+        }
+
+        let converter = CurrencyConverter(contentsOf: testXMLURL)
         let referenceRates = try await converter.fetch()
-        let date = referenceRates.date
-        let now = Date()
-        let dateFormatter = DateFormatter.yyyyMMddFormatter
 
-        let today = dateFormatter.string(from: now)
-        let oneDayAgo = dateFormatter.string(from: now.addingTimeInterval(-24 * 60 * 60 * 1))
-        let twoDaysAgo = dateFormatter.string(from: now.addingTimeInterval(-24 * 60 * 60 * 2))
-        let possibleDates = [today, oneDayAgo, twoDaysAgo]
-        #expect(possibleDates.contains(date))
-
-        let datePattern = #"^\d{4}[-]\d{2}[-]\d{2}$"# // 2021-05-07
-        #expect(date.range(of: datePattern, options: .regularExpression) != nil)
-
+        #expect(referenceRates.date == "2021-05-07")
         #expect(referenceRates.rates(baseCurrencyCode: "USD").count == referenceRates.rates(baseCurrencyCode: "JPY").count)
         #expect(referenceRates.rates(baseCurrencyCode: "XXX").count == 0)
     }
@@ -192,14 +189,5 @@ struct CurrencyConverterTests {
         </Cube>
         </gesmes:Envelope>
         """
-    }
-}
-
-private extension DateFormatter {
-    // E.g. 2022-01-01
-    static var yyyyMMddFormatter: DateFormatter {
-        let formatter = DateFormatter()
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
     }
 }

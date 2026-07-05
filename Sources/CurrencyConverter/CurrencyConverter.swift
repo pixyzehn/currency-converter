@@ -12,6 +12,10 @@ public class CurrencyConverter {
         parser = ReferenceRatesXMLParser(data: data)
     }
 
+    init(contentsOf url: URL) {
+        parser = ReferenceRatesXMLParser(contentsOf: url)
+    }
+
     /// Fetch the latest reference rates from the source.
     public func fetch(completion: @escaping (Result<ReferenceRates, XMLParserError>) -> Void) {
         let safe = SafeCallback()
