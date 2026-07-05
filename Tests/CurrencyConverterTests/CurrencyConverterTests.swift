@@ -107,6 +107,38 @@ struct CurrencyConverterTests {
         #expect(didThrow)
     }
 
+    @Test func parserRejectsInvalidDates() async {
+        let xmlData = testXMLData(replacing: #"time="2021-05-07""#, with: #"time="2021-99-99""#)
+        let converter = CurrencyConverter(data: xmlData)
+        var didThrow = false
+
+        do {
+            _ = try await converter.fetch()
+        } catch {
+            didThrow = true
+        }
+
+        #expect(didThrow)
+    }
+
+    @Test func parserRejectsInvalidRates() async {
+        let invalidRates = ["0", "-1", "nan", "inf"]
+
+        for invalidRate in invalidRates {
+            let xmlData = testXMLData(replacing: #"rate="1.2059""#, with: #"rate="\#(invalidRate)""#)
+            let converter = CurrencyConverter(data: xmlData)
+            var didThrow = false
+
+            do {
+                _ = try await converter.fetch()
+            } catch {
+                didThrow = true
+            }
+
+            #expect(didThrow)
+        }
+    }
+
     private var testXMLData: Data {
         testXML.data(using: .utf8)!
     }

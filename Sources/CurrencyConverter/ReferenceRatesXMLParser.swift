@@ -28,6 +28,33 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
         case data(Data)
     }
 
+    private func isValidDateString(_ value: String) -> Bool {
+        let datePattern = #"^\d{4}[-]\d{2}[-]\d{2}$"# // 2021-05-07
+        guard value.range(of: datePattern, options: .regularExpression) != nil else {
+            return false
+        }
+
+        let parts = value.split(separator: "-")
+        guard parts.count == 3,
+              let year = Int(parts[0]),
+              let month = Int(parts[1]),
+              let day = Int(parts[2]) else {
+            return false
+        }
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let components = DateComponents(calendar: calendar, year: year, month: month, day: day)
+        guard let date = calendar.date(from: components) else {
+            return false
+        }
+
+        let resolvedComponents = calendar.dateComponents([.year, .month, .day], from: date)
+        return resolvedComponents.year == year
+            && resolvedComponents.month == month
+            && resolvedComponents.day == day
+    }
+
     private func appendRate(_ rate: CurrencyRate) {
         resultRatesQueue.sync {
             _resultRates.append(rate)
@@ -107,15 +134,14 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
         for attribute in attributeDict {
             switch attribute.key {
             case XMLParserKeys.time.rawValue:
-                let datePattern = #"^\d{4}[-]\d{2}[-]\d{2}$"# // 2021-05-07
-                if attribute.value.range(of: datePattern, options: .regularExpression) != nil {
+                if isValidDateString(attribute.value) {
                     resultDate = attribute.value
                 } else {
                     handleParseError("Unexpected time value: \(attribute.value)", parser: parser)
                     return
                 }
             case XMLParserKeys.rate.rawValue:
-                if let rate = Double(attribute.value) {
+                if let rate = Double(attribute.value), rate.isFinite, rate > 0 {
                     currencyRate.rate = rate
                 } else {
                     handleParseError("Unexpected rate value: \(attribute.value)", parser: parser)
