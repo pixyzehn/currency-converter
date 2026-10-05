@@ -18,7 +18,7 @@ jobs:
     strategy:
       matrix:
         xcode:
-          - '2'
+          - '27.0'
     steps:
       - uses: actions/checkout@v7
 
