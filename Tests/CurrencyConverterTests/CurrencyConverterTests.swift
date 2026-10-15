@@ -136,6 +136,40 @@ struct CurrencyConverterTests {
         }
     }
 
+    @Test func converterReleasesCompletionAfterFetch() {
+        final class LifetimeToken {}
+
+        let converter = CurrencyConverter(data: testXMLData)
+        weak var retainedToken: LifetimeToken?
+        do {
+            let token = LifetimeToken()
+            retainedToken = token
+            converter.fetch { [token] _ in
+                _ = token
+            }
+        }
+        #expect(retainedToken == nil)
+        withExtendedLifetime(converter) {}
+    }
+
+    @Test func parserRejectsAmbiguousRateSnapshots() async {
+        let ambiguousEntries = [
+            #"<Cube currency="USD" rate="2"/>"#,
+            #"</Cube><Cube time="2021-05-08">"#,
+            #"</Cube><Cube time="2021-05-07">"#,
+        ]
+
+        for entry in ambiguousEntries {
+            let data = testXMLData(
+                replacing: #"<Cube currency="USD" rate="1.2059"/>"#,
+                with: #"<Cube currency="USD" rate="1.2059"/>"# + entry
+            )
+            await #expect(throws: XMLParserError.self) {
+                try await CurrencyConverter(data: data).fetch()
+            }
+        }
+    }
+
     private var testXMLData: Data {
         testXML.data(using: .utf8)!
     }

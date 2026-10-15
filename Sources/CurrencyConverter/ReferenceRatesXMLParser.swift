@@ -1,7 +1,7 @@
 import Foundation
 
 class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
-    private static let defaultXMLURL = URL(string: "https://expenses.cash/eurofxref/eurofxref.xml")!
+    static let defaultXMLURL = URL(string: "https://expenses.cash/eurofxref/eurofxref.xml")!
 
     private let source: Source
 
@@ -134,6 +134,10 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
         for attribute in attributeDict {
             switch attribute.key {
             case XMLParserKeys.time.rawValue:
+                guard resultDate == nil else {
+                    handleParseError("Multiple dated rate snapshots are not supported", parser: parser)
+                    return
+                }
                 if isValidDateString(attribute.value) {
                     resultDate = attribute.value
                 } else {
@@ -160,6 +164,10 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
         }
 
         if let currencyCode = currencyRate.currencyCode, let rate = currencyRate.rate {
+            guard !resultRates.contains(where: { $0.currencyCode == currencyCode }) else {
+                handleParseError("Duplicate currency: \(currencyCode)", parser: parser)
+                return
+            }
             appendRate(.init(currencyCode: currencyCode, rate: rate))
         } else if currencyRate.currencyCode != nil || currencyRate.rate != nil {
             handleParseError("Currency entries must include currency and rate", parser: parser)

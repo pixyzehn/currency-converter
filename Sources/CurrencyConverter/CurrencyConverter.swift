@@ -2,22 +2,29 @@ import Foundation
 
 /// The converter to fetch foreign exchange reference rates.
 public class CurrencyConverter {
-    private let parser: ReferenceRatesXMLParser
+    private let source: ReferenceRatesXMLParser.Source
 
     public init() {
-        parser = ReferenceRatesXMLParser()
+        source = .url(ReferenceRatesXMLParser.defaultXMLURL)
     }
 
     public init(data: Data) {
-        parser = ReferenceRatesXMLParser(data: data)
+        source = .data(data)
     }
 
     init(contentsOf url: URL) {
-        parser = ReferenceRatesXMLParser(contentsOf: url)
+        source = .url(url)
     }
 
     /// Fetch the latest reference rates from the source.
     public func fetch(completion: @escaping (Result<ReferenceRates, XMLParserError>) -> Void) {
+        let parser: ReferenceRatesXMLParser
+        switch source {
+        case .url(let url):
+            parser = ReferenceRatesXMLParser(contentsOf: url)
+        case .data(let data):
+            parser = ReferenceRatesXMLParser(data: data)
+        }
         let safe = SafeCallback()
         parser.callbacks.parseSucceeded = { referenceRates in
             safe.call {
