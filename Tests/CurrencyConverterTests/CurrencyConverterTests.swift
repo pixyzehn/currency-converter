@@ -137,7 +137,7 @@ struct CurrencyConverterTests {
     }
 
     @Test func converterReleasesCompletionAfterFetch() {
-        final class LifetimeToken {}
+        final class LifetimeToken: Sendable {}
 
         let converter = CurrencyConverter(data: testXMLData)
         weak var retainedToken: LifetimeToken?
@@ -166,6 +166,38 @@ struct CurrencyConverterTests {
             )
             await #expect(throws: XMLParserError.self) {
                 try await CurrencyConverter(data: data).fetch()
+            }
+        }
+    }
+
+    @Test func networkFetchReturnsBeforeResponse() async throws {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [RateURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+        let converter = CurrencyConverter(contentsOf: URL(string: "https://rates.invalid/success")!, session: session)
+        let returned = DispatchSemaphore(value: 0)
+        let result: Result<ReferenceRates, XMLParserError> = await withCheckedContinuation { continuation in
+            converter.fetch { result in
+                // A synchronous fetch cannot observe this signal before returning.
+                #expect(returned.wait(timeout: .now() + 2) == .success)
+                continuation.resume(returning: result)
+            }
+            returned.signal()
+        }
+        let rates = try result.get()
+        #expect(rates.rate(fromCurrencyCode: "EUR", toCurrencyCode: "USD") == 2)
+    }
+
+    @Test func networkFetchRejectsHTTPAndTransportErrors() async {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [RateURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        defer { session.invalidateAndCancel() }
+        for path in ["http-error", "transport-error"] {
+            let converter = CurrencyConverter(contentsOf: URL(string: "https://rates.invalid/" + path)!, session: session)
+            await #expect(throws: XMLParserError.self) {
+                try await converter.fetch()
             }
         }
     }
@@ -224,4 +256,29 @@ struct CurrencyConverterTests {
         </gesmes:Envelope>
         """
     }
+}
+
+private final class RateURLProtocol: URLProtocol, @unchecked Sendable {
+    override class func canInit(with request: URLRequest) -> Bool { true }
+    override class func canonicalRequest(for request: URLRequest) -> URLRequest { request }
+
+    override func startLoading() {
+        guard let url = request.url else { return }
+        if url.path == "/transport-error" {
+            client?.urlProtocol(self, didFailWithError: URLError(.notConnectedToInternet))
+            return
+        }
+        let response = HTTPURLResponse(
+            url: url,
+            statusCode: url.path == "/http-error" ? 503 : 200,
+            httpVersion: nil,
+            headerFields: nil
+        )!
+        let xml = #"<Cube><Cube time="2026-10-15"><Cube currency="USD" rate="2"/></Cube></Cube>"#
+        client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
+        client?.urlProtocol(self, didLoad: Data(xml.utf8))
+        client?.urlProtocolDidFinishLoading(self)
+    }
+
+    override func stopLoading() {}
 }

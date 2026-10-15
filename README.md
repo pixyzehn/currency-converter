@@ -7,3 +7,5 @@
 A simple currency converter library using the XML data from [expenses.cash](https://expenses.cash) (originally from [European Central Bank](https://www.ecb.europa.eu/home/html/index.en.html)). The library has been created and used for [Expenses.app](https://expenses.cash). It fetches the latest foreign exchange reference rates and returns the objects in a simple way.
 
 Each fetch expects a single dated snapshot with one entry per currency. Duplicate currencies or multiple dated snapshots cause an `XMLParserError` instead of combining ambiguous rates.
+
+Network fetches use asynchronous URLSession requests. The completion-based API requires a `@Sendable` closure and delivers network results on the session's delegate queue; dispatch UI updates to the main actor. Fetches initialized with `Data` invoke completion synchronously. HTTP errors and transport failures are reported as `XMLParserError`.
