@@ -8,6 +8,8 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
     private let resultRatesQueue = DispatchQueue(label: "ReferenceRatesXMLParser.resultRatesQueue")
     private var _resultRates: [CurrencyRate] = []
     private var resultDate: String?
+    private var elementDepth = 0
+    private var snapshotDepth: Int?
     private var callbackGuard = SafeCallback()
 
     var callbacks = Callbacks()
@@ -111,6 +113,8 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
             _resultRates.removeAll(keepingCapacity: true)
         }
         resultDate = nil
+        elementDepth = 0
+        snapshotDepth = nil
     }
 
     private func handleParseError(_ message: String, parser: XMLParser) {
@@ -123,6 +127,7 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
     // MARK: - XMLParserDelegate
 
     func parser(_ parser: XMLParser, didStartElement elementName: String, namespaceURI: String?, qualifiedName qName: String?, attributes attributeDict: [String: String] = [:]) {
+        elementDepth += 1
         guard elementName == "Cube", !attributeDict.isEmpty else {
             // Skip throwing an error as there will be element names to ignore,
             // such as 'gesmes:Envelope', 'gesmes:subject', and so on.
@@ -140,6 +145,7 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
                 }
                 if isValidDateString(attribute.value) {
                     resultDate = attribute.value
+                    snapshotDepth = elementDepth
                 } else {
                     handleParseError("Unexpected time value: \(attribute.value)", parser: parser)
                     return
@@ -164,6 +170,10 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
         }
 
         if let currencyCode = currencyRate.currencyCode, let rate = currencyRate.rate {
+            guard let snapshotDepth, elementDepth == snapshotDepth + 1 else {
+                handleParseError("Currency entries must be direct children of the dated snapshot", parser: parser)
+                return
+            }
             guard !resultRates.contains(where: { $0.currencyCode == currencyCode }) else {
                 handleParseError("Duplicate currency: \(currencyCode)", parser: parser)
                 return
@@ -172,6 +182,13 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
         } else if currencyRate.currencyCode != nil || currencyRate.rate != nil {
             handleParseError("Currency entries must include currency and rate", parser: parser)
         }
+    }
+
+    func parser(_ parser: XMLParser, didEndElement elementName: String, namespaceURI: String?, qualifiedName qName: String?) {
+        if elementDepth == snapshotDepth {
+            snapshotDepth = nil
+        }
+        elementDepth -= 1
     }
 
     func parserDidEndDocument(_ parser: XMLParser) {

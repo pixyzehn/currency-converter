@@ -170,6 +170,21 @@ struct CurrencyConverterTests {
         }
     }
 
+    @Test func parserRejectsRatesOutsideSnapshot() async {
+        let row = #"<Cube currency="USD" rate="2"/>"#
+        let snapshots = [
+            #"<Cube>\#(row)<Cube time="2026-10-15"/></Cube>"#,
+            #"<Cube><Cube time="2026-10-15"/>\#(row)</Cube>"#,
+            #"<Cube><Cube time="2026-10-15"><Other>\#(row)</Other></Cube></Cube>"#,
+            #"<Cube time="2026-10-15" currency="USD" rate="2"/>"#,
+        ]
+        for xml in snapshots {
+            await #expect(throws: XMLParserError.self) {
+                try await CurrencyConverter(data: Data(xml.utf8)).fetch()
+            }
+        }
+    }
+
     @Test func networkFetchReturnsBeforeResponse() async throws {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [RateURLProtocol.self]

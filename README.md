@@ -8,4 +8,6 @@ A simple currency converter library using the XML data from [expenses.cash](http
 
 Each fetch expects a single dated snapshot with one entry per currency. Duplicate currencies or multiple dated snapshots cause an `XMLParserError` instead of combining ambiguous rates.
 
+Currency rows must be direct children of the dated snapshot.
+
 Network fetches use asynchronous URLSession requests. The completion-based API requires a `@Sendable` closure and delivers network results on the session's delegate queue; dispatch UI updates to the main actor. Fetches initialized with `Data` invoke completion synchronously. HTTP errors and transport failures are reported as `XMLParserError`.
