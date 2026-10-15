@@ -174,6 +174,10 @@ class ReferenceRatesXMLParser: NSObject, XMLParserDelegate {
                 handleParseError("Currency entries must be direct children of the dated snapshot", parser: parser)
                 return
             }
+            guard currencyCode != "EUR" else {
+                handleParseError("EUR is the implicit base currency and must not have a rate entry", parser: parser)
+                return
+            }
             guard !resultRates.contains(where: { $0.currencyCode == currencyCode }) else {
                 handleParseError("Duplicate currency: \(currencyCode)", parser: parser)
                 return

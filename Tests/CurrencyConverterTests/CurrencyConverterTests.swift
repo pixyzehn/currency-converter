@@ -185,6 +185,18 @@ struct CurrencyConverterTests {
         }
     }
 
+    @Test func parserRejectsExplicitEUR() async {
+        for rate in ["1", "5"] {
+            let data = testXMLData(
+                replacing: #"<Cube currency="USD" rate="1.2059"/>"#,
+                with: #"<Cube currency="EUR" rate="\#(rate)"/>"#
+            )
+            await #expect(throws: XMLParserError.self) {
+                try await CurrencyConverter(data: data).fetch()
+            }
+        }
+    }
+
     @Test func networkFetchReturnsBeforeResponse() async throws {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [RateURLProtocol.self]
