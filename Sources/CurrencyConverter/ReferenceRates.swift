@@ -14,46 +14,52 @@ public struct ReferenceRates: Codable, Hashable, Sendable {
     }
 
     /// Returns array of currency rates from the given parameters.
+    /// Invalid rates and nonfinite results are omitted; nonfinite amounts return an empty array.
     ///
     /// - Parameters:
     ///     - amount: The amount of the currency. The default is 1.
     ///     - baseCurrencyCode: The base currency code for the currency rates. The default is "EUR".
     public func rates(amount: Double = 1, baseCurrencyCode: String = "EUR") -> [CurrencyRate] {
-        guard CurrencyCodeValidator.isValidCurrencyCode(baseCurrencyCode) else {
+        guard amount.isFinite,
+              CurrencyCodeValidator.isValidCurrencyCode(baseCurrencyCode) else {
             return []
         }
 
         if baseCurrencyCode == Self.defaultCurrencyCode {
-            if amount == 1 {
-                return rates
-            }
-            return rates.map { .init(currencyCode: $0.currencyCode, rate: amount * $0.rate) }
-        } else {
-            var newRates = rates.filter { $0.currencyCode != baseCurrencyCode }
-
-            if let rate = rate(fromCurrencyCode: baseCurrencyCode, toCurrencyCode: Self.defaultCurrencyCode) {
-                newRates.append(.init(currencyCode: Self.defaultCurrencyCode, rate: rate))
-            }
-
-            newRates = newRates.compactMap {
-                if let rate = rate(fromCurrencyCode: baseCurrencyCode, toCurrencyCode: $0.currencyCode) {
-                    return .init(currencyCode: $0.currencyCode, rate: amount * rate)
+            return rates.compactMap { entry in
+                guard CurrencyCodeValidator.isValidCurrencyCode(entry.currencyCode),
+                      entry.rate.isFinite, entry.rate > 0 else {
+                    return nil
                 }
+                let converted = amount * entry.rate
+                guard converted.isFinite else { return nil }
+                return CurrencyRate(currencyCode: entry.currencyCode, rate: converted)
+            }
+        }
+        var currencyCodes = rates.map(\.currencyCode).filter { $0 != baseCurrencyCode }
+        currencyCodes.append(Self.defaultCurrencyCode)
+        return currencyCodes.compactMap { currencyCode in
+            guard let converted = rate(
+                amount: amount,
+                fromCurrencyCode: baseCurrencyCode,
+                toCurrencyCode: currencyCode
+            ) else {
                 return nil
             }
-
-            return newRates
+            return CurrencyRate(currencyCode: currencyCode, rate: converted)
         }
     }
 
     /// Returns the rate from the given parameters.
+    /// Returns nil for nonfinite amounts, invalid rates, or nonfinite results.
     ///
     /// - Parameters:
     ///     - amount: The amount of the currency. The default is 1.
     ///     - fromCurrencyCode: The currency code that you'd like to converted from.
     ///     - toCurrencyCode: The currency code that you'd like to converted to.
     public func rate(amount: Double = 1, fromCurrencyCode: String, toCurrencyCode: String) -> Double? {
-        guard CurrencyCodeValidator.isValidCurrencyCode(fromCurrencyCode),
+        guard amount.isFinite,
+              CurrencyCodeValidator.isValidCurrencyCode(fromCurrencyCode),
               CurrencyCodeValidator.isValidCurrencyCode(toCurrencyCode) else {
             return nil
         }
@@ -62,20 +68,22 @@ public struct ReferenceRates: Codable, Hashable, Sendable {
             return amount
         }
 
-        if let rate = rates.first(where: { $0.currencyCode == toCurrencyCode })?.rate, fromCurrencyCode == Self.defaultCurrencyCode {
-            return amount * rate
+        guard let fromRate = referenceRate(for: fromCurrencyCode),
+              let toRate = referenceRate(for: toCurrencyCode) else {
+            return nil
         }
+        let converted = amount * (toRate / fromRate)
+        return converted.isFinite ? converted : nil
+    }
 
-        if let rate = rates.first(where: { $0.currencyCode == fromCurrencyCode })?.rate, toCurrencyCode == Self.defaultCurrencyCode {
-            return amount * 1 / rate
+    private func referenceRate(for currencyCode: String) -> Double? {
+        if currencyCode == Self.defaultCurrencyCode {
+            return 1
         }
-
-        if  let fromRate = rates.first(where: { $0.currencyCode == fromCurrencyCode })?.rate,
-            let toRate = rates.first(where: { $0.currencyCode == toCurrencyCode })?.rate {
-            let actualRate = toRate / fromRate
-            return amount * actualRate
+        guard let rate = rates.first(where: { $0.currencyCode == currencyCode })?.rate,
+              rate.isFinite, rate > 0 else {
+            return nil
         }
-
-        return nil
+        return rate
     }
 }

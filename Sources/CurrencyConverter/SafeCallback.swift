@@ -6,9 +6,12 @@ final class SafeCallback {
 
     func call(_ block: () -> Void) {
         lock.lock()
-        defer { lock.unlock() }
-        guard !isCalled else { return }
+        guard !isCalled else {
+            lock.unlock()
+            return
+        }
         isCalled = true
+        lock.unlock()
         block()
     }
 }

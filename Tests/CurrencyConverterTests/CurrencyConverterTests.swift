@@ -229,6 +229,87 @@ struct CurrencyConverterTests {
         }
     }
 
+    @Test func safeCallbackAllowsReentry() {
+        let callback = SafeCallback()
+        var calls = 0
+        callback.call {
+            calls += 1
+            callback.call { calls += 1 }
+        }
+        callback.call { calls += 1 }
+        #expect(calls == 1)
+    }
+
+    @Test func malformedXMLCompletesExactlyOnce() {
+        let malformedDocuments = [
+            "",
+            "not XML",
+            "<Cube>",
+            "<Cube/>",
+            #"<Cube time="2021-05-07"><Cube currency="USD" rate="0"/></Cube>"#,
+            #"<Cube time="2021-05-07"><Cube currency="USD" rate="2"/></Cube><broken>"#,
+            #"<!DOCTYPE Cube [<!ENTITY rate "2">]><Cube time="2021-05-07"><Cube currency="USD" rate="&missing;"/></Cube>"#,
+        ]
+        for xml in malformedDocuments {
+            let parser = ReferenceRatesXMLParser(data: Data(xml.utf8))
+            var successes = 0
+            var failures = 0
+            parser.callbacks.parseSucceeded = { _ in successes += 1 }
+            parser.callbacks.parseErrorOccurred = { _ in failures += 1 }
+            parser.parse()
+            #expect(successes == 0)
+            #expect(failures == 1)
+            parser.parse()
+            #expect(successes == 0)
+            #expect(failures == 2)
+        }
+    }
+
+    @Test func conversionsRejectNonfiniteAmounts() {
+        let referenceRates = ReferenceRates(date: "2021-05-07", rates: [
+            CurrencyRate(currencyCode: "USD", rate: 2),
+        ])
+        for amount in [Double.nan, .infinity, -.infinity] {
+            for base in ["EUR", "USD"] {
+                #expect(referenceRates.rates(amount: amount, baseCurrencyCode: base).isEmpty)
+                for target in ["EUR", "USD"] {
+                    #expect(referenceRates.rate(amount: amount, fromCurrencyCode: base, toCurrencyCode: target) == nil)
+                }
+            }
+        }
+    }
+
+    @Test func conversionsRejectInvalidStoredRates() throws {
+        for invalidRate in [0, -1, Double.nan, .infinity, -.infinity] {
+            let referenceRates = ReferenceRates(date: "2021-05-07", rates: [
+                CurrencyRate(currencyCode: "USD", rate: invalidRate),
+                CurrencyRate(currencyCode: "JPY", rate: 100),
+            ])
+            #expect(referenceRates.rate(fromCurrencyCode: "EUR", toCurrencyCode: "USD") == nil)
+            #expect(referenceRates.rate(fromCurrencyCode: "USD", toCurrencyCode: "EUR") == nil)
+            #expect(referenceRates.rate(fromCurrencyCode: "USD", toCurrencyCode: "JPY") == nil)
+            #expect(referenceRates.rates().map(\.currencyCode) == ["JPY"])
+            #expect(referenceRates.rates(baseCurrencyCode: "USD").isEmpty)
+        }
+        let data = Data(#"{"date":"2021-05-07","rates":[{"currencyCode":"USD","rate":0}]}"#.utf8)
+        let decoded = try JSONDecoder().decode(ReferenceRates.self, from: data)
+        #expect(decoded.rate(fromCurrencyCode: "USD", toCurrencyCode: "EUR") == nil)
+    }
+
+    @Test func conversionsRejectOverflowAndPreserveFiniteAmounts() {
+        let referenceRates = ReferenceRates(date: "2021-05-07", rates: [
+            CurrencyRate(currencyCode: "USD", rate: 2),
+            CurrencyRate(currencyCode: "JPY", rate: Double.leastNonzeroMagnitude),
+        ])
+        #expect(referenceRates.rate(amount: .greatestFiniteMagnitude, fromCurrencyCode: "EUR", toCurrencyCode: "USD") == nil)
+        #expect(referenceRates.rate(fromCurrencyCode: "JPY", toCurrencyCode: "EUR") == nil)
+        #expect(referenceRates.rates(amount: .greatestFiniteMagnitude).allSatisfy { $0.rate.isFinite })
+        for amount in [0.0, -2.0, 2.0] {
+            #expect(referenceRates.rate(amount: amount, fromCurrencyCode: "EUR", toCurrencyCode: "USD") == amount * 2)
+            #expect(referenceRates.rate(amount: amount, fromCurrencyCode: "USD", toCurrencyCode: "USD") == amount)
+        }
+    }
+
     private var testXMLData: Data {
         testXML.data(using: .utf8)!
     }

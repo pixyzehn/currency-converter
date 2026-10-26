@@ -11,3 +11,5 @@ Each fetch expects a single dated snapshot with one entry per currency. Duplicat
 Currency rows must be direct children of the dated snapshot. EUR is the implicit base currency, so explicit EUR rows are rejected.
 
 Network fetches use asynchronous URLSession requests. The completion-based API requires a `@Sendable` closure and delivers network results on the session's delegate queue; dispatch UI updates to the main actor. Fetches initialized with `Data` invoke completion synchronously. HTTP errors and transport failures are reported as `XMLParserError`.
+
+Conversions return `nil` for nonfinite amounts, nonpositive or nonfinite stored rates, and arithmetic that produces a nonfinite result. Lists omit invalid conversions and return an empty array for nonfinite amounts. These checks also apply to rates supplied through the public initializer or decoded from stored data. Finite zero and negative amounts remain supported.
